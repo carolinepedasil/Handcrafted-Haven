@@ -1,0 +1,34 @@
+[
+  {
+    "id": "1",
+    "name": "Handmade Clay Mug",
+    "price": "$28",
+    "image": "/mug.webp",
+    "description": "A warm earthy-toned ceramic mug perfect for your morning coffee.",
+    "seller": "Clay & Co",
+    "reviews": [
+      { "name": "Alice", "rating": 5, "comment": "Absolutely love it!" },
+      { "name": "Tom", "rating": 4, "comment": "Perfect for my espresso." }
+    ]
+  },
+  {
+    "id": "2",
+    "name": "Woven Wall Hanging",
+    "price": "$45",
+    "image": "/wall-hanging.jpg",
+    "description": "Neutral-toned macrame art to cozy up any room.",
+    "seller": "Threads Studio",
+    "reviews": [
+      { "name": "Sophie", "rating": 5, "comment": "Gorgeous craftsmanship!" }
+    ]
+  },
+  {
+    "id": "3",
+    "name": "Wooden Spoon Set",
+    "price": "$18",
+    "image": "/spoons.jpg",
+    "description": "Hand-carved wooden kitchen utensils, sustainably sourced.",
+    "seller": "Wood Wonders",
+    "reviews": []
+  }
+]

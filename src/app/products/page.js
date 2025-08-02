@@ -1,28 +1,6 @@
 import Image from "next/image";
-
-const products = [
-  {
-    id: 1,
-    name: "Handmade Clay Mug",
-    price: "$28",
-    image: "/mug.webp",
-    description: "A warm earthy-toned ceramic mug perfect for your morning coffee."
-  },
-  {
-    id: 2,
-    name: "Woven Wall Hanging",
-    price: "$45",
-    image: "/wall-hanging.jpg",
-    description: "Neutral-toned macrame art to cozy up any room."
-  },
-  {
-    id: 3,
-    name: "Wooden Spoon Set",
-    price: "$18",
-    image: "/spoons.jpg",
-    description: "Hand-carved wooden kitchen utensils, sustainably sourced."
-  },
-];
+import Link from "next/link";
+import products from "@/data/products.json";
 
 export default function ProductListingPage() {
   return (
@@ -45,7 +23,11 @@ export default function ProductListingPage() {
                 objectFit="cover"
               />
             </div>
-            <h2 className="text-xl font-serif text-[#8d6e63]">{product.name}</h2>
+            <Link href={`/products/${product.id}`}>
+              <h2 className="text-xl font-serif text-[#8d6e63] hover:underline cursor-pointer">
+                {product.name}
+              </h2>
+            </Link>
             <p className="text-sm text-[#444] mt-1 mb-2">{product.description}</p>
             <span className="mt-auto text-lg font-semibold text-[#8d6e63]">
               {product.price}
