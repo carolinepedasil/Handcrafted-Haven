@@ -1,46 +1,68 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import products from "@/data/products.json";
+import ProductReviews from "@/components/ProductReviews";
+import { getProductById } from "@/lib/products";
 
-export default function ProductDetailPage({ params }) {
-  const { id } = params;
-  const product = products.find((p) => p.id === id);
+export async function generateStaticParams() {
+  const { getAllProducts } = await import("@/lib/products");
+  const products = await getAllProducts();
+  return products.map((p) => ({ id: String(p.id) }));
+}
 
+export default async function ProductDetailPage({ params }) {
+  const product = await getProductById(Number(params.id));
   if (!product) return notFound();
 
   return (
     <main className="min-h-screen bg-[#fdfaf6] px-6 py-10 text-[#171717]">
-      <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-8">
-        <div className="relative w-full md:w-1/2 h-80 md:h-[400px] rounded overflow-hidden shadow">
-          <Image src={product.image} alt={product.name} layout="fill" objectFit="cover" />
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-10">
+        <div className="lg:col-span-2">
+          <div className="relative w-full aspect-square rounded-lg overflow-hidden border border-[#d7ccc8] bg-white">
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 40vw"
+              priority
+            />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4 md:w-1/2">
+        <div className="lg:col-span-3 flex flex-col">
           <h1 className="text-3xl font-serif text-[#8d6e63]">{product.name}</h1>
-          <p className="text-lg">{product.description}</p>
-          <p className="text-xl font-semibold text-[#8d6e63]">{product.price}</p>
-          <p className="text-sm text-[#555]">
-            Sold by: <span className="font-semibold">{product.seller}</span>
-          </p>
+          <p className="mt-2 text-sm text-[#444]">{product.description}</p>
+
+          <div className="mt-4 flex items-center gap-3">
+            <span className="inline-flex items-center rounded-full bg-white border border-[#d7ccc8] px-3 py-1 text-sm">
+              Seller: <span className="ml-1 font-medium">{product.seller}</span>
+            </span>
+            {Array.isArray(product.categories) && product.categories.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {product.categories.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full bg-white border border-[#d7ccc8] px-3 py-1 text-xs"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <span className="text-2xl font-semibold text-[#8d6e63]">
+              {product.price}
+            </span>
+          </div>
+
+          <ProductReviews
+            productId={product.id}
+            initialReviews={product.reviews || []}
+          />
         </div>
       </div>
-
-      <section className="mt-12 max-w-4xl mx-auto">
-        <h2 className="text-2xl font-serif text-[#8d6e63] mb-4">Reviews</h2>
-        {product.reviews.length === 0 ? (
-          <p className="text-[#777]">No reviews yet.</p>
-        ) : (
-          <ul className="space-y-4">
-            {product.reviews.map((review, idx) => (
-              <li key={idx} className="border-b pb-4">
-                <p className="font-semibold">{review.name}</p>
-                <p className="text-yellow-600">{"★".repeat(review.rating)}</p>
-                <p>{review.comment}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </main>
   );
 }
