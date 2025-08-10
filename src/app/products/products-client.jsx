@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import products from "@/data/products.json";
 
 function uniqueCategories(list) {
   const set = new Set();
@@ -12,7 +11,7 @@ function uniqueCategories(list) {
   return Array.from(set).sort();
 }
 
-export default function ProductsClient() {
+export default function ProductsClient({ products }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();

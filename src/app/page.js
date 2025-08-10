@@ -11,6 +11,21 @@ export default function Home() {
         <br />
         Shop unique creations crafted with care and intention.
       </p>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Link
+          href="/signup"
+          className="bg-white text-[#8d6e63] border border-[#8d6e63] px-6 py-3 rounded-full text-lg hover:bg-[#f5efec] transition"
+        >
+          Sign Up
+        </Link>
+        <Link
+          href="/login"
+          className="bg-white text-[#8d6e63] border border-[#8d6e63] px-6 py-3 rounded-full text-lg hover:bg-[#f5efec] transition"
+        >
+          Login
+        </Link>
+      </div>
+      <br />
       <Link
         href="/products"
         className="bg-[#8d6e63] text-white px-6 py-3 rounded-full text-lg hover:bg-[#6d534a] transition"
