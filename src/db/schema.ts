@@ -27,3 +27,13 @@ export const products = pgTable("products", {
   categories: text("categories"),
   sellerId: uuid("seller_id").notNull().references(() => users.id),
 });
+
+export const reviews = pgTable("reviews", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  userId: uuid("user_id").references(() => users.id),
+  name: varchar("name", { length: 120 }),
+  rating: integer("rating").notNull(),
+  comment: text("comment").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});

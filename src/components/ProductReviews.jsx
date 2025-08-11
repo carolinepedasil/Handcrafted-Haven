@@ -1,19 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-function loadLocalReviews(productId) {
-  try {
-    const raw = localStorage.getItem(`reviews:${productId}`);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalReviews(productId, reviews) {
-  localStorage.setItem(`reviews:${productId}`, JSON.stringify(reviews));
-}
+import { useSession } from "next-auth/react";
 
 function Stars({ rating }) {
   return (
@@ -35,20 +23,23 @@ function Stars({ rating }) {
 }
 
 export default function ProductReviews({ productId, initialReviews = [] }) {
+  const { data: session } = useSession();
   const [reviews, setReviews] = useState(initialReviews);
   const [form, setForm] = useState({ name: "", rating: "5", comment: "" });
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const local = loadLocalReviews(productId);
-    if (local.length) {
-      setReviews((prev) => {
-        const combined = [...prev];
-        for (const r of local) combined.push(r);
-        return combined;
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/products/${productId}/reviews`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data.reviews)) setReviews(data.reviews);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
   }, [productId]);
 
   function handleChange(e) {
@@ -56,7 +47,7 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
     setForm((f) => ({ ...f, [name]: value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
@@ -73,25 +64,41 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
       return;
     }
 
-    const newReview = {
-      name,
-      rating,
-      comment,
-      date: new Date().toISOString(),
-    };
+    if (!session?.user) {
+      setError("You must be logged in to leave a review.");
+      return;
+    }
 
-    const local = loadLocalReviews(productId);
-    const nextLocal = [...local, newReview];
-    saveLocalReviews(productId, nextLocal);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/products/${productId}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name || undefined,
+          rating,
+          comment,
+        }),
+      });
 
-    setReviews((prev) => [...prev, newReview]);
-    setForm({ name: "", rating: "5", comment: "" });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.error || "Failed to submit review.");
+      } else {
+        setReviews((prev) => [...prev, data.review]);
+        setForm({ name: "", rating: "5", comment: "" });
+      }
+    } catch {
+      setError("Network error. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <section aria-labelledby="reviews-heading" className="mt-10">
-      <h2
-        id="reviews-heading"
+      <h2 
+        id="reviews-heading" 
         className="text-2xl font-serif text-[#8d6e63] mb-4"
       >
         Reviews
@@ -102,18 +109,18 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
       ) : (
         <ul className="space-y-4">
           {reviews.map((r, idx) => (
-            <li
-              key={`${r.name}-${idx}-${r.date ?? idx}`}
+            <li 
+              key={`${r.id ?? idx}`} 
               className="rounded-lg border border-[#d7ccc8] bg-white p-4"
             >
               <div className="flex items-center justify-between">
-                <p className="font-medium">{r.name}</p>
+                <p className="font-medium">{r.name || "Anonymous"}</p>
                 <Stars rating={r.rating} />
               </div>
               <p className="mt-2 text-sm text-[#444]">{r.comment}</p>
-              {r.date && (
+              {r.createdAt && (
                 <p className="mt-1 text-xs text-[#777]">
-                  {new Date(r.date).toLocaleDateString()}
+                  {new Date(r.createdAt).toLocaleDateString()}
                 </p>
               )}
             </li>
@@ -143,7 +150,7 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
               name="name"
               value={form.name}
               onChange={handleChange}
-              placeholder="Optional"
+              placeholder={session?.user?.name || ""}
               className="w-full rounded-md border border-[#d7ccc8] p-2 outline-none focus:ring-2 focus:ring-[#8d6e63]/40"
             />
           </label>
@@ -181,9 +188,10 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
 
         <button
           type="submit"
-          className="mt-4 inline-flex items-center justify-center rounded-lg bg-[#8d6e63] px-4 py-2 font-medium text-white hover:opacity-90"
+          disabled={submitting}
+          className="mt-4 inline-flex items-center justify-center rounded-lg bg-[#8d6e63] px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-60"
         >
-          Submit review
+          {submitting ? "Submitting..." : "Submit review"}
         </button>
       </form>
     </section>
