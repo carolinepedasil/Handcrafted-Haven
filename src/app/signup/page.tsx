@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -42,7 +43,18 @@ export default function SignupPage() {
     });
 
     if (res.ok) {
-      router.push("/products");
+      const login = await signIn("credentials", {
+        email: form.email,
+        password: form.password,
+        redirect: false,
+      });
+
+      if (login?.error) {
+        alert("Account created, but auto-login failed. Please sign in.");
+        router.push("/login");
+      } else {
+        router.push("/products");
+      }
     } else {
       const data = await res.json();
       alert(data.error || "Sign up failed");
@@ -57,7 +69,6 @@ export default function SignupPage() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
           <div>
             <input
               type="text"
@@ -72,7 +83,6 @@ export default function SignupPage() {
             )}
           </div>
 
-          {/* Email */}
           <div>
             <input
               type="email"
@@ -87,7 +97,6 @@ export default function SignupPage() {
             )}
           </div>
 
-          {/* Password */}
           <div>
             <input
               type="password"
@@ -102,7 +111,6 @@ export default function SignupPage() {
             )}
           </div>
 
-          {/* Role */}
           <select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
@@ -112,7 +120,6 @@ export default function SignupPage() {
             <option value="seller">Seller</option>
           </select>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={!isValid}

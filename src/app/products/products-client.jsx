@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
 function uniqueCategories(list) {
   const set = new Set();
@@ -12,6 +13,7 @@ function uniqueCategories(list) {
 }
 
 export default function ProductsClient({ products }) {
+  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -55,7 +57,7 @@ export default function ProductsClient({ products }) {
 
     return products.filter((p) => {
       const matchesText =
-        !term ||
+        !term || 
         `${p.name} ${p.description}`.toLowerCase().includes(term);
 
       const matchesCats =
@@ -64,10 +66,31 @@ export default function ProductsClient({ products }) {
 
       return matchesText && matchesCats;
     });
-  }, [query, selectedCats]);
+  }, [query, selectedCats, products]);
 
   return (
     <main className="min-h-screen bg-[#fdfaf6] px-6 py-10 text-[#171717]">
+      <header className="max-w-7xl mx-auto mb-6 flex items-center justify-end">
+        {status === "loading" ? (
+          <span className="text-sm text-[#6b6b6b]">Loading session…</span>
+        ) : session?.user ? (
+          <div className="flex items-center gap-3">
+            <span className="text-sm">
+              Logged in as{" "}
+              <strong>{session.user.name || session.user.email}</strong>
+            </span>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="px-3 py-1 rounded-lg bg-[#8d6e63] text-white hover:bg-[#6d534a] transition text-sm"
+            >
+              Log out
+            </button>
+          </div>
+        ) : (
+          <span className="text-sm text-[#6b6b6b]">Not logged in</span>
+        )}
+      </header>
+
       <h1 className="text-3xl font-serif text-center text-[#8d6e63] mb-6">
         Featured Handmade Products
       </h1>
