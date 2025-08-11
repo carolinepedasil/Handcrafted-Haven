@@ -2,7 +2,6 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import ProductReviews from "@/components/ProductReviews";
 import { getProductById } from "@/lib/products";
-import { getReviewsByProduct } from "@/lib/reviews";
 
 export async function generateStaticParams() {
   const { getAllProducts } = await import("@/lib/products");
@@ -11,7 +10,8 @@ export async function generateStaticParams() {
 }
 
 export default async function ProductDetailPage({ params }) {
-  const product = await getProductById(params.id);
+  const { id } = await params;
+  const product = await getProductById(id);
   if (!product) return notFound();
 
   let categories = [];
@@ -24,8 +24,6 @@ export default async function ProductDetailPage({ params }) {
       categories = product.categories.split(",").map((s) => s.trim()).filter(Boolean);
     }
   }
-
-  const initialReviews = await getReviewsByProduct(product.id);
 
   return (
     <main className="min-h-screen bg-[#fdfaf6] px-6 py-10 text-[#171717]">
@@ -66,7 +64,7 @@ export default async function ProductDetailPage({ params }) {
             </span>
           </div>
 
-          <ProductReviews productId={product.id} initialReviews={initialReviews} />
+          <ProductReviews productId={product.id} />
         </div>
       </div>
     </main>

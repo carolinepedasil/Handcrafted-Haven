@@ -12,8 +12,9 @@ const postSchema = z.object({
   comment: z.string().trim().min(1).max(1000),
 });
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
-  const productId = params.id;
+export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
+  const { id: productId } = await context.params;
+
   const exists = await db.select({ id: products.id }).from(products).where(eq(products.id, productId));
   if (!exists.length) return NextResponse.json({ error: "Product not found" }, { status: 404 });
 
@@ -26,8 +27,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return NextResponse.json({ reviews: rows });
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const productId = params.id;
+export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
+  const { id: productId } = await context.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
