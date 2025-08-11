@@ -10,8 +10,19 @@ export async function generateStaticParams() {
 }
 
 export default async function ProductDetailPage({ params }) {
-  const product = await getProductById(Number(params.id));
+  const product = await getProductById(params.id);
   if (!product) return notFound();
+
+  let categories = [];
+  if (Array.isArray(product.categories)) categories = product.categories;
+  else if (typeof product.categories === "string" && product.categories.trim()) {
+    try {
+      const parsed = JSON.parse(product.categories);
+      if (Array.isArray(parsed)) categories = parsed;
+    } catch {
+      categories = product.categories.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#fdfaf6] px-6 py-10 text-[#171717]">
@@ -34,17 +45,14 @@ export default async function ProductDetailPage({ params }) {
           <p className="mt-2 text-sm text-[#444]">{product.description}</p>
 
           <div className="mt-4 flex items-center gap-3">
-            <span className="inline-flex items-center rounded-full bg-white border border-[#d7ccc8] px-3 py-1 text-sm">
-              Seller: <span className="ml-1 font-medium">{product.seller}</span>
-            </span>
-            {Array.isArray(product.categories) && product.categories.length > 0 && (
+            {categories.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {product.categories.map((c) => (
+                {categories.map((c) => (
                   <span
                     key={c}
-                    className="rounded-full bg-white border border-[#d7ccc8] px-3 py-1 text-xs"
+                    className="rounded-full bg-white border border-[#d7ccc8] px-3 py-1 text-xs capitalize"
                   >
-                    {c}
+                    {c.replace("-", " ")}
                   </span>
                 ))}
               </div>
@@ -53,14 +61,11 @@ export default async function ProductDetailPage({ params }) {
 
           <div className="mt-6">
             <span className="text-2xl font-semibold text-[#8d6e63]">
-              {product.price}
+              ${product.price}
             </span>
           </div>
 
-          <ProductReviews
-            productId={product.id}
-            initialReviews={product.reviews || []}
-          />
+          <ProductReviews productId={product.id} initialReviews={product.reviews || []} />
         </div>
       </div>
     </main>

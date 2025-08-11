@@ -222,7 +222,7 @@ export default function ProductsClient({ products }) {
                 ))}
               </div>
               <span className="mt-auto text-lg font-semibold text-[#8d6e63]">
-                {product.price}
+                ${product.price}
               </span>
             </div>
           ))}

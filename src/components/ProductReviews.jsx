@@ -98,7 +98,7 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
       </h2>
 
       {reviews.length === 0 ? (
-        <p className="text-sm text-[#444]">No reviews yet — be the first!</p>
+        <p className="text-sm text-[#444]">No reviews yet</p>
       ) : (
         <ul className="space-y-4">
           {reviews.map((r, idx) => (
