@@ -32,7 +32,7 @@ export default function LoginPage() {
           </button>
         </form>
         <p className="mt-4 text-sm text-center">
-          Don't have an account? <Link href="/signup" className="text-[#8d6e63] underline">Sign Up</Link>
+           Don&apos;t have an account? <Link href="/signup" className="text-[#8d6e63] underline">Sign Up</Link>
         </p>
       </div>
     </main>

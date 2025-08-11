@@ -99,7 +99,8 @@ export default function ProductsClient({ products }) {
         aria-label="Product filters"
         className="max-w-7xl mx-auto mb-8 space-y-4"
       >
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center justify-between gap-3 w-full">
+        <div className="flex items-center gap-3">
           <label htmlFor="query" className="sr-only">
             Search products
           </label>
@@ -120,6 +121,15 @@ export default function ProductsClient({ products }) {
             </button>
           )}
         </div>
+        {session?.user?.role === "seller" && (
+          <Link
+            href="/products/new"
+            className="px-4 py-2 rounded-lg bg-[#8d6e63] text-white hover:bg-[#6d534a]"
+          >
+            Add Product
+          </Link>
+        )}
+      </div>
 
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-sm text-[#6b6b6b] mr-1">Categories:</span>
