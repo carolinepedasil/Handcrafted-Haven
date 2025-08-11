@@ -27,7 +27,7 @@ export default function ProductsClient({ products }) {
   const [query, setQuery] = useState(initialQuery);
   const [selectedCats, setSelectedCats] = useState(initialCategories);
 
-  const allCategories = useMemo(() => uniqueCategories(products), []);
+  const allCategories = useMemo(() => uniqueCategories(products), [products]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -58,11 +58,24 @@ export default function ProductsClient({ products }) {
     return products.filter((p) => {
       const matchesText =
         !term || 
-        `${p.name} ${p.description}`.toLowerCase().includes(term);
+        `${p.name} ${p.description ?? ""}`.toLowerCase().includes(term);
+
+      const cats = Array.isArray(p.categories)
+        ? p.categories
+        : typeof p.categories === "string" && p.categories.trim()
+        ? (() => {
+            try {
+              const parsed = JSON.parse(p.categories);
+              return Array.isArray(parsed) ? parsed : [];
+            } catch {
+              return p.categories.split(",").map((s) => s.trim()).filter(Boolean);
+            }
+          })()
+        : [];
 
       const matchesCats =
         selectedCats.length === 0 ||
-        (p.categories || []).some((c) => selectedCats.includes(c));
+        cats.some((c) => selectedCats.includes(c));
 
       return matchesText && matchesCats;
     });
@@ -71,23 +84,34 @@ export default function ProductsClient({ products }) {
   return (
     <main className="min-h-screen bg-[#fdfaf6] px-6 py-10 text-[#171717]">
       <header className="max-w-7xl mx-auto mb-6 flex items-center justify-end">
-        {status === "loading" ? (
-          <span className="text-sm text-[#6b6b6b]">Loading session…</span>
-        ) : session?.user ? (
+        {status === "loading" ? null : session?.user ? (
           <div className="flex items-center gap-3">
             <span className="text-sm">
               Logged in as{" "}
               <strong>{session.user.name || session.user.email}</strong>
             </span>
             <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="px-3 py-1 rounded-lg bg-[#8d6e63] text-white hover:bg-[#6d534a] transition text-sm"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="text-sm text-[#8d6e63] hover:underline"
             >
-              Log out
+              Sign out
             </button>
           </div>
         ) : (
-          <span className="text-sm text-[#6b6b6b]">Not logged in</span>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/signup"
+              className="px-3 py-1 rounded border border-[#8d6e63] text-[#8d6e63] hover:bg-[#f5efec] text-sm"
+            >
+              Sign Up
+            </Link>
+            <Link
+              href="/login"
+              className="px-3 py-1 rounded bg-[#8d6e63] text-white hover:bg-[#6d534a] text-sm"
+            >
+              Login
+            </Link>
+          </div>
         )}
       </header>
 
@@ -99,37 +123,37 @@ export default function ProductsClient({ products }) {
         aria-label="Product filters"
         className="max-w-7xl mx-auto mb-8 space-y-4"
       >
-      <div className="flex items-center justify-between gap-3 w-full">
-        <div className="flex items-center gap-3">
-          <label htmlFor="query" className="sr-only">
-            Search products
-          </label>
-          <input
-            id="query"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name or description…"
-            className="w-full md:w-96 rounded-lg border border-[#d7ccc8] bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-[#8d6e63]/40"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              className="text-sm underline text-[#8d6e63]"
-              aria-label="Clear search"
+        <div className="flex items-center justify-between gap-3 w-full">
+          <div className="flex items-center gap-3">
+            <label htmlFor="query" className="sr-only">
+              Search products
+            </label>
+            <input
+              id="query"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name or description…"
+              className="w-full md:w-96 rounded-lg border border-[#d7ccc8] bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-[#8d6e63]/40"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="text-sm underline text-[#8d6e63]"
+                aria-label="Clear search"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {session?.user?.role === "seller" && (
+            <Link
+              href="/products/new"
+              className="px-4 py-2 rounded-lg bg-[#8d6e63] text-white hover:bg-[#6d534a]"
             >
-              Clear
-            </button>
+              Add Product
+            </Link>
           )}
         </div>
-        {session?.user?.role === "seller" && (
-          <Link
-            href="/products/new"
-            className="px-4 py-2 rounded-lg bg-[#8d6e63] text-white hover:bg-[#6d534a]"
-          >
-            Add Product
-          </Link>
-        )}
-      </div>
 
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-sm text-[#6b6b6b] mr-1">Categories:</span>
@@ -212,7 +236,7 @@ export default function ProductsClient({ products }) {
                 {product.description}
               </p>
               <div className="flex flex-wrap gap-1 mb-3">
-                {(product.categories || []).map((c) => (
+                {(Array.isArray(product.categories) ? product.categories : []).map((c) => (
                   <span
                     key={c}
                     className="text-xs capitalize bg-[#fdfaf6] border border-[#d7ccc8] rounded-full px-2 py-0.5 text-[#6b6b6b]"
@@ -222,7 +246,7 @@ export default function ProductsClient({ products }) {
                 ))}
               </div>
               <span className="mt-auto text-lg font-semibold text-[#8d6e63]">
-                ${product.price}
+                {String(product.price).startsWith("$") ? product.price : `$${product.price}`}
               </span>
             </div>
           ))}

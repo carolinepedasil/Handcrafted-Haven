@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProductReviews from "@/components/ProductReviews";
 import { getProductById } from "@/lib/products";
@@ -27,6 +28,15 @@ export default async function ProductDetailPage({ params }) {
 
   return (
     <main className="min-h-screen bg-[#fdfaf6] px-6 py-10 text-[#171717]">
+      <div className="max-w-6xl mx-auto mb-6">
+        <Link
+          href="/products"
+          className="inline-block px-4 py-2 rounded-lg bg-[#8d6e63] text-white hover:bg-[#6d534a] transition text-sm"
+        >
+          ← Back to Products
+        </Link>
+      </div>
+
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-10">
         <div className="lg:col-span-2">
           <div className="relative w-full aspect-square rounded-lg overflow-hidden border border-[#d7ccc8] bg-white">
