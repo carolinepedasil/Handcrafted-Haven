@@ -4,26 +4,50 @@ Handcrafted Haven is a web application for artisans to showcase and sell their h
 
 ### Tech Stack
 
-- **Front-End:** HTML, Tailwind CSS, TypeScript, Next.js, ESLint
-- **Back-End:** Node.js
-- **Project Management:** GitHub Boards
-- **Code Management:** Git and GitHub Repository
+- **Front-End:** HTML, Tailwind CSS, JavaScript, Next.js
+- **Back-End:** Node.js (Next.js API Routes), PostgreSQL (via Drizzle ORM)
+- **Authentication:** NextAuth.js
+- **ORM:** Drizzle ORM (schema-based migrations & type-safe queries)
 - **Deployment/Cloud Platform:** Vercel
+- **Database Hosting:** Vercel Postgres
+- **Project Management:** GitHub Boards
+- **Code Quality:** ESLint
 
-## Getting Started
+### Features
 
-First, install dependencies:
+- User authentication & authorization
+- Seller and buyer roles
+- Product listing & filtering by category
+- Product detail pages with reviews
+- Add new products (seller-only)
+- Responsive UI with Tailwind CSS
+- Server-side rendering (SSR) & static site generation (SSG)
+
+### Live App: 
+
+- https://handcrafted-haven-ashen.vercel.app/
+
+### Project Board: 
+
+- https://github.com/users/carolinepedasil/projects/2
+
+### Test users:
+
+- **Buyer:** buyer@admin.com / admin123
+- **Seller:** seller@admin.com / admin123
+
+### Prerequisites
+
+Before running locally, make sure you have:
+
+- Node.js >= 18
+- PostgreSQL installed or a hosted database connection
+- Environment variables set up (see .env.example)
+
+### Environment Variables
 
 ```bash
-npm install
+DATABASE_URL=postgres://username:password@localhost:5432/dbname
+NEXTAUTH_SECRET=your_secret_key
+NEXTAUTH_URL=http://localhost:3000
 ```
-
-### Run the Project Locally
-
-Now you can start your dev server:
-
-```bash
-npm run dev
-```
-
-Visit http://localhost:3000 and you should see the default Next.js homepage.
