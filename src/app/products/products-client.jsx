@@ -8,8 +8,19 @@ import { useSession, signOut } from "next-auth/react";
 
 function uniqueCategories(list) {
   const set = new Set();
-  for (const p of list) for (const c of p.categories || []) set.add(c);
+  for (const p of list) {
+    const cats = Array.isArray(p.categories) ? p.categories : [];
+    for (const c of cats) set.add(c);
+  }
   return Array.from(set).sort();
+}
+
+function toNumericPrice(price) {
+  if (typeof price === "number") return price;
+  const s = String(price ?? "").trim();
+  const cleaned = s.replace(/[^\d.,-]/g, "").replace(",", ".");
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : NaN;
 }
 
 export default function ProductsClient({ products }) {
@@ -23,26 +34,59 @@ export default function ProductsClient({ products }) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  const initialMin = searchParams.get("minPrice");
+  const initialMax = searchParams.get("maxPrice");
 
   const [query, setQuery] = useState(initialQuery);
   const [selectedCats, setSelectedCats] = useState(initialCategories);
+  const [minPrice, setMinPrice] = useState(initialMin ?? "");
+  const [maxPrice, setMaxPrice] = useState(initialMax ?? "");
 
-  const allCategories = useMemo(() => uniqueCategories(products), [products]);
+  const normalizedProducts = useMemo(() => {
+    return (products || []).map((p) => {
+      if (Array.isArray(p.categories)) return p;
+      if (typeof p.categories === "string" && p.categories.trim()) {
+        try {
+          const parsed = JSON.parse(p.categories);
+          if (Array.isArray(parsed)) return { ...p, categories: parsed };
+        } catch {
+          const split = p.categories
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+          return { ...p, categories: split };
+        }
+      }
+      return { ...p, categories: [] };
+    });
+  }, [products]);
+
+  const allCategories = useMemo(
+    () => uniqueCategories(normalizedProducts),
+    [normalizedProducts]
+  );
 
   useEffect(() => {
     const t = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
+
       if (query) params.set("query", query);
       else params.delete("query");
 
       if (selectedCats.length) params.set("categories", selectedCats.join(","));
       else params.delete("categories");
 
+      if (minPrice) params.set("minPrice", minPrice);
+      else params.delete("minPrice");
+
+      if (maxPrice) params.set("maxPrice", maxPrice);
+      else params.delete("maxPrice");
+
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     }, 250);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, selectedCats]);
+  }, [query, selectedCats, minPrice, maxPrice]);
 
   const toggleCategory = (cat) => {
     setSelectedCats((prev) =>
@@ -52,34 +96,33 @@ export default function ProductsClient({ products }) {
 
   const clearCategories = () => setSelectedCats([]);
 
+  const clearPrice = () => {
+    setMinPrice("");
+    setMaxPrice("");
+  };
+
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
 
-    return products.filter((p) => {
+    return normalizedProducts.filter((p) => {
       const matchesText =
         !term || 
         `${p.name} ${p.description ?? ""}`.toLowerCase().includes(term);
 
-      const cats = Array.isArray(p.categories)
-        ? p.categories
-        : typeof p.categories === "string" && p.categories.trim()
-        ? (() => {
-            try {
-              const parsed = JSON.parse(p.categories);
-              return Array.isArray(parsed) ? parsed : [];
-            } catch {
-              return p.categories.split(",").map((s) => s.trim()).filter(Boolean);
-            }
-          })()
-        : [];
-
       const matchesCats =
         selectedCats.length === 0 ||
-        cats.some((c) => selectedCats.includes(c));
+        p.categories.some((c) => selectedCats.includes(c));
 
-      return matchesText && matchesCats;
+      const priceNum = toNumericPrice(p.price);
+      const minNum = minPrice ? parseFloat(minPrice) : null;
+      const maxNum = maxPrice ? parseFloat(maxPrice) : null;
+
+      const withinMin = minNum == null || (Number.isFinite(priceNum) && priceNum >= minNum);
+      const withinMax = maxNum == null || (Number.isFinite(priceNum) && priceNum <= maxNum);
+
+      return matchesText && matchesCats && withinMin && withinMax;
     });
-  }, [query, selectedCats, products]);
+  }, [query, selectedCats, minPrice, maxPrice, normalizedProducts]);
 
   return (
     <main className="min-h-screen bg-[#fdfaf6] px-6 py-10 text-[#171717]">
@@ -123,8 +166,8 @@ export default function ProductsClient({ products }) {
         aria-label="Product filters"
         className="max-w-7xl mx-auto mb-8 space-y-4"
       >
-        <div className="flex items-center justify-between gap-3 w-full">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 w-full flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <label htmlFor="query" className="sr-only">
               Search products
             </label>
@@ -133,7 +176,7 @@ export default function ProductsClient({ products }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name or description…"
-              className="w-full md:w-96 rounded-lg border border-[#d7ccc8] bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-[#8d6e63]/40"
+              className="w-72 md:w-80 rounded-lg border border-[#d7ccc8] bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-[#8d6e63]/40"
             />
             {query && (
               <button
@@ -144,7 +187,41 @@ export default function ProductsClient({ products }) {
                 Clear
               </button>
             )}
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[#6b6b6b] mr-1">Price:</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="Min"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                className="w-20 rounded-lg border border-[#d7ccc8] bg-white px-3 py-1 outline-none focus:ring-2 focus:ring-[#8d6e63]/30 text-sm"
+              />
+              <span className="text-sm text-[#6b6b6b]">–</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="Max"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="w-20 rounded-lg border border-[#d7ccc8] bg-white px-3 py-1 outline-none focus:ring-2 focus:ring-[#8d6e63]/30 text-sm"
+              />
+              {(minPrice || maxPrice) && (
+                <button
+                  onClick={clearPrice}
+                  className="text-xs underline text-[#8d6e63]"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
+
           {session?.user?.role === "seller" && (
             <Link
               href="/products/new"
@@ -155,7 +232,7 @@ export default function ProductsClient({ products }) {
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex flex-wrap gap-2 items-center mt-2">
           <span className="text-sm text-[#6b6b6b] mr-1">Categories:</span>
           <button
             onClick={clearCategories}
@@ -200,10 +277,20 @@ export default function ProductsClient({ products }) {
               for <span className="font-semibold">&quot;{query}&quot;</span>
             </>
           )}
+          {(minPrice || maxPrice) && (
+            <>
+              {" "}
+              in price{" "}
+              <span className="font-semibold">
+                {minPrice ? `$${minPrice}` : "any"} –{" "}
+                {maxPrice ? `$${maxPrice}` : "any"}
+              </span>
+            </>
+          )}
           {selectedCats.length > 0 && (
             <>
               {" "}
-              in{" "}
+              under{" "}
               <span className="font-semibold">
                 {selectedCats.map((c) => c.replace("-", " ")).join(", ")}
               </span>

@@ -38,12 +38,8 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (!session.user) (session as any).user = {};
       (session as any).user.role = (token as any).role ?? "buyer";
-      (session as any).user.id = (token as any).sub || (session as any).user.id;
+      (session as any).user.id = token.sub as string;
       return session;
-    },
-    async redirect({ url, baseUrl }) {
-      const base = baseUrl || process.env.NEXTAUTH_URL;
-      return `${base}/products`;
     },
   },
 

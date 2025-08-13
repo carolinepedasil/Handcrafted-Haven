@@ -12,7 +12,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-[#fdfaf6] text-[#171717] flex flex-col">
-      <div className="w-full relative h-[300px] sm:h-[400px] lg:h-[500px]">
+      <div className="w-full relative h-[300px] sm:h-[400px]">
         <Image
           src="/HandcraftedHaven.jpg"
           alt="Handcrafted Haven"

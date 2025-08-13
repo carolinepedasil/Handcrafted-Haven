@@ -22,9 +22,10 @@ function Stars({ rating }) {
   );
 }
 
-export default function ProductReviews({ productId, initialReviews = [] }) {
+export default function ProductReviews({ productId }) {
   const { data: session } = useSession();
-  const [reviews, setReviews] = useState(initialReviews);
+  const isBuyer = session?.user?.role === "buyer";
+  const [reviews, setReviews] = useState([]);
   const [form, setForm] = useState({ name: "", rating: "5", comment: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -36,7 +37,7 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
         const res = await fetch(`/api/products/${productId}/reviews`, { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
-        if (!cancelled && Array.isArray(data.reviews)) setReviews(data.reviews);
+        if (!cancelled) setReviews(data);
       } catch {}
     })();
     return () => { cancelled = true; };
@@ -64,11 +65,6 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
       return;
     }
 
-    if (!session?.user) {
-      setError("You must be logged in to leave a review.");
-      return;
-    }
-
     setSubmitting(true);
     try {
       const res = await fetch(`/api/products/${productId}/reviews`, {
@@ -81,11 +77,16 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data?.error || "Failed to submit review.");
+      if (res.status === 401) {
+        setError("Please log in to leave a review.");
+      } else if (res.status === 403) {
+        setError("Only buyers can leave reviews.");
+      } else if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Failed to submit review.");
       } else {
-        setReviews((prev) => [...prev, data.review]);
+        const created = await res.json();
+        setReviews((prev) => [created, ...prev]);
         setForm({ name: "", rating: "5", comment: "" });
       }
     } catch {
@@ -109,7 +110,7 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
       ) : (
         <ul className="space-y-4">
           {reviews.map((r, idx) => (
-            <li 
+            <li
               key={`${r.id ?? idx}`} 
               className="rounded-lg border border-[#d7ccc8] bg-white p-4"
             >
@@ -128,72 +129,84 @@ export default function ProductReviews({ productId, initialReviews = [] }) {
         </ul>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="mt-6 rounded-xl border border-[#d7ccc8] bg-white p-4"
-      >
-        <h3 className="text-lg font-serif text-[#8d6e63] mb-3">
-          Leave a review
-        </h3>
+      {isBuyer ? (
+        <form
+          onSubmit={handleSubmit}
+          className="mt-6 rounded-xl border border-[#d7ccc8] bg-white p-4"
+        >
+          <h3 className="text-lg font-serif text-[#8d6e63] mb-3">
+            Leave a review
+          </h3>
 
-        {error && (
-          <p className="mb-3 text-sm text-red-600" role="alert">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="mb-3 text-sm text-red-600" role="alert">
+              {error}
+            </p>
+          )}
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="block">
-            <span className="block text-sm mb-1">Your name</span>
-            <input
-              type="text"
-              name="name"
-              value={form.name}
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block">
+              <span className="block text-sm mb-1">Your name</span>
+              <input
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder={session?.user?.name || ""}
+                className="w-full rounded-md border border-[#d7ccc8] p-2 outline-none focus:ring-2 focus:ring-[#8d6e63]/40"
+              />
+            </label>
+
+            <label className="block">
+              <span className="block text-sm mb-1">Rating</span>
+              <select
+                name="rating"
+                value={form.rating}
+                onChange={handleChange}
+                className="w-full rounded-md border border-[#d7ccc8] p-2 outline-none focus:ring-2 focus:ring-[#8d6e63]/40"
+                aria-label="Star rating from 1 to 5"
+              >
+                <option value="5">★★★★★ (5)</option>
+                <option value="4">★★★★☆ (4)</option>
+                <option value="3">★★★☆☆ (3)</option>
+                <option value="2">★★☆☆☆ (2)</option>
+                <option value="1">★☆☆☆☆ (1)</option>
+              </select>
+            </label>
+          </div>
+
+          <label className="block mt-4">
+            <span className="block text-sm mb-1">Comment</span>
+            <textarea
+              name="comment"
+              value={form.comment}
               onChange={handleChange}
-              placeholder={session?.user?.name || ""}
+              rows={4}
+              required
               className="w-full rounded-md border border-[#d7ccc8] p-2 outline-none focus:ring-2 focus:ring-[#8d6e63]/40"
+              placeholder="Share your thoughts…"
             />
           </label>
 
-          <label className="block">
-            <span className="block text-sm mb-1">Rating</span>
-            <select
-              name="rating"
-              value={form.rating}
-              onChange={handleChange}
-              className="w-full rounded-md border border-[#d7ccc8] p-2 outline-none focus:ring-2 focus:ring-[#8d6e63]/40"
-              aria-label="Star rating from 1 to 5"
-            >
-              <option value="5">★★★★★ (5)</option>
-              <option value="4">★★★★☆ (4)</option>
-              <option value="3">★★★☆☆ (3)</option>
-              <option value="2">★★☆☆☆ (2)</option>
-              <option value="1">★☆☆☆☆ (1)</option>
-            </select>
-          </label>
-        </div>
-
-        <label className="block mt-4">
-          <span className="block text-sm mb-1">Comment</span>
-          <textarea
-            name="comment"
-            value={form.comment}
-            onChange={handleChange}
-            rows={4}
-            required
-            className="w-full rounded-md border border-[#d7ccc8] p-2 outline-none focus:ring-2 focus:ring-[#8d6e63]/40"
-            placeholder="Share your thoughts…"
-          />
-        </label>
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="mt-4 inline-flex items-center justify-center rounded-lg bg-[#8d6e63] px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-60"
-        >
+          <button
+            type="submit"
+            disabled={submitting}
+            className="mt-4 inline-flex items-center justify-center rounded-lg bg-[#8d6e63] px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-60"
+          >
           {submitting ? "Submitting..." : "Submit review"}
-        </button>
-      </form>
+          </button>
+        </form>
+      ) : (
+        session?.user ? (
+          <p className="mt-6 text-sm text-[#6b6b6b]">
+            Only buyers can leave reviews.
+          </p>
+        ) : (
+          <p className="mt-6 text-sm text-[#6b6b6b]">
+            Please log in as a buyer to leave a review.
+          </p>
+        )
+      )}
     </section>
   );
 }
