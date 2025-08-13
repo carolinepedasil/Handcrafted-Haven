@@ -5,7 +5,7 @@ import { authOptions } from "@/auth";
 import { db } from "@/db/client";
 import { products } from "@/db/schema";
 import { randomUUID } from "crypto";
-import { promises as fs } from "fs";
+import { put } from "@vercel/blob"; 
 import path from "path";
 
 export async function createProduct(formData: FormData): Promise<{ ok: boolean; error?: string }> {
@@ -29,22 +29,24 @@ export async function createProduct(formData: FormData): Promise<{ ok: boolean; 
     ? categoriesRaw.split(",").map(s => s.trim()).filter(Boolean)
     : [];
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await fs.mkdir(uploadsDir, { recursive: true });
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    return { ok: false, error: "Missing BLOB_READ_WRITE_TOKEN (did you set it and restart the dev server?)" };
+  }
 
   const ext = (imageFile.name?.split(".").pop() || "png").toLowerCase();
-  const filename = `${randomUUID()}.${ext}`;
-  const filePath = path.join(uploadsDir, filename);
-
+  const filename = `uploads/${randomUUID()}.${ext}`;
   const arrayBuffer = await imageFile.arrayBuffer();
-  await fs.writeFile(filePath, Buffer.from(arrayBuffer));
 
-  const publicUrl = `/uploads/${filename}`;
+  const { url } = await put(filename, arrayBuffer, {
+    access: "public",
+    token,
+  });
 
   await db.insert(products).values({
     name,
     price,
-    image: publicUrl,
+    image: url,
     description,
     categories: JSON.stringify(categoriesArray),
     sellerId,

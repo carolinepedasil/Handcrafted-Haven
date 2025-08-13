@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import NewProductForm from "./NewProductForm";
 
+export const runtime = "nodejs";
+
 export default async function NewProductPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login?cb=/products/new");
